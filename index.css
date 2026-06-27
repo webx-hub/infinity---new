@@ -1,0 +1,87 @@
+import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Loader2, Check } from 'lucide-react';
+
+interface SubmissionOverlayProps {
+  status: 'idle' | 'loading' | 'success';
+  onClose?: () => void;
+}
+
+export default function SubmissionOverlay({ status, onClose }: SubmissionOverlayProps) {
+  if (status === 'idle') return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop overlay */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-neutral-950/75 backdrop-blur-md"
+        />
+
+        {/* Content Box */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          transition={{ type: 'spring', duration: 0.5 }}
+          className="relative bg-white border border-neutral-200 shadow-2xl p-8 sm:p-10 max-w-sm w-full text-center rounded-[20px] overflow-hidden z-10"
+        >
+          {status === 'loading' && (
+            <div className="flex flex-col items-center py-6 space-y-5">
+              <div className="relative">
+                <Loader2 className="w-14 h-14 text-neutral-900 animate-spin stroke-[1.5]" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-german-red rounded-full animate-ping" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-neutral-950 font-display uppercase tracking-wider">
+                  Sending Inquiry
+                </h3>
+                <p className="text-xs text-neutral-500 max-w-[240px]">
+                  Connecting to our secure admissions server...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {status === 'success' && (
+            <div className="flex flex-col items-center py-4 space-y-6">
+              {/* Animated Premium Checkmark */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: [0, 1.2, 1] }}
+                transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
+                className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20 relative"
+              >
+                <Check className="w-8 h-8 stroke-[3]" />
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0.5 }}
+                  animate={{ scale: 1.5, opacity: 0 }}
+                  transition={{ repeat: Infinity, duration: 1.5, ease: 'easeOut' }}
+                  className="absolute inset-0 rounded-full border border-emerald-400"
+                />
+              </motion.div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-neutral-950 font-display">
+                  Inquiry Saved!
+                </h3>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Thank you! Your academic consultation is registered on our live database. An admissions officer is preparing your customized career roadmap.
+                </p>
+              </div>
+
+              <span className="text-[10px] font-bold font-mono text-neutral-400 uppercase tracking-widest bg-neutral-50 px-3 py-1.5 border border-neutral-100">
+                Connected to CRM
+              </span>
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}

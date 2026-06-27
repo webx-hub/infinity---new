@@ -1,0 +1,53 @@
+export interface Course {
+  id: string;
+  number: string;
+  level: string;
+  title: string;
+  description: string;
+  topics: string[];
+  duration: string;
+  schedule: string;
+  fee: number;
+  originalFee: number;
+}
+
+export interface VideoItem {
+  id: string;
+  title: string;
+  type: 'youtube' | 'instagram' | 'mp4';
+  url: string;
+  thumbnail: string;
+  category: 'Demo' | 'Feedback' | 'Practice' | 'Guidance';
+}
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  level: string;
+  review: string;
+  videoUrl?: string;
+}
+
+export interface Inquiry {
+  id: string;
+  name: string;
+  mobile: string;
+  email?: string;
+  level: string;
+  purpose: string;
+  message?: string;
+  date: string;
+  source: 'inline' | 'popup' | 'exit';
+}
+
+export interface SystemSettings {
+  phone: string;
+  whatsapp: string;
+  googleMapsEmbedUrl: string;
+  googleMapsShareUrl: string;
+  youtubeChannelUrl: string;
+  instagramProfileUrl: string;
+  freeA2PlaylistUrl: string;
+  heroBgUrl: string;
+  teacherPhotoUrl: string;
+}

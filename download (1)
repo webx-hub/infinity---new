@@ -1,0 +1,131 @@
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  getDoc,
+  Timestamp 
+} from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from './firebase';
+
+export interface Enquiry {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  country?: string;
+  program: string;
+  message?: string;
+  source: string;
+  date: string; // ISO string
+  status: 'New' | 'Contacted';
+}
+
+const ENQUIRIES_COLLECTION = 'enquiries';
+const ADMIN_CONFIG_COLLECTION = 'admin_config';
+const CREDENTIALS_DOC = 'credentials';
+
+// 1. Submit a brand-new Enquiry to Firestore
+export async function submitEnquiry(data: Omit<Enquiry, 'id' | 'status' | 'date'>): Promise<Enquiry> {
+  const path = ENQUIRIES_COLLECTION;
+  try {
+    const id = `enq_${Date.now()}`;
+    const newDoc: Enquiry = {
+      ...data,
+      id,
+      date: new Date().toISOString(),
+      status: 'New'
+    };
+    
+    // We use setDoc to enforce our custom ID
+    await setDoc(doc(db, ENQUIRIES_COLLECTION, id), newDoc);
+    return newDoc;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+    throw error;
+  }
+}
+
+// 2. Fetch all enquiries in real-time
+export function subscribeToEnquiries(onUpdate: (enquiries: Enquiry[]) => void, onError?: (err: Error) => void) {
+  const path = ENQUIRIES_COLLECTION;
+  const q = query(collection(db, ENQUIRIES_COLLECTION));
+  
+  return onSnapshot(q, (snapshot) => {
+    const list: Enquiry[] = [];
+    snapshot.forEach((doc) => {
+      list.push(doc.data() as Enquiry);
+    });
+    
+    // Sort in code or rely on Firebase indexes. Sorting in memory is safe and fast for typical sizes
+    list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    onUpdate(list);
+  }, (error) => {
+    if (onError) {
+      onError(error);
+    } else {
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  });
+}
+
+// 3. Mark an enquiry as Contacted
+export async function updateEnquiryStatus(id: string, status: 'New' | 'Contacted'): Promise<void> {
+  const path = `${ENQUIRIES_COLLECTION}/${id}`;
+  try {
+    await updateDoc(doc(db, ENQUIRIES_COLLECTION, id), { status });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+// 4. Delete an enquiry
+export async function deleteEnquiry(id: string): Promise<void> {
+  const path = `${ENQUIRIES_COLLECTION}/${id}`;
+  try {
+    await deleteDoc(doc(db, ENQUIRIES_COLLECTION, id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+// 5. Initialize or get admin configuration (for changing credentials)
+export async function ensureAdminConfigInitialized(): Promise<string> {
+  const path = `${ADMIN_CONFIG_COLLECTION}/${CREDENTIALS_DOC}`;
+  try {
+    const docRef = doc(db, ADMIN_CONFIG_COLLECTION, CREDENTIALS_DOC);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      // Default password: Admin@123
+      const defaultPassword = 'Admin@123';
+      await setDoc(docRef, {
+        password: defaultPassword,
+        updatedAt: new Date().toISOString()
+      });
+      return defaultPassword;
+    }
+    return snap.data().password;
+  } catch (error) {
+    console.error('Failed to initialize admin credentials, falling back to local simulation:', error);
+    return 'Admin@123'; // Fallback
+  }
+}
+
+// 6. Change admin password
+export async function updateAdminPassword(newPassword: string): Promise<void> {
+  const path = `${ADMIN_CONFIG_COLLECTION}/${CREDENTIALS_DOC}`;
+  try {
+    const docRef = doc(db, ADMIN_CONFIG_COLLECTION, CREDENTIALS_DOC);
+    await setDoc(docRef, {
+      password: newPassword,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
